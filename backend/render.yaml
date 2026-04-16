@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: tender-processor-backend
+    env: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app

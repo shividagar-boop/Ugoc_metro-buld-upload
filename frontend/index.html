@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Load Tender Processor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f7f7f7;
+      border-radius: 10px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    p.note {
+      text-align: center;
+      color: #555;
+      margin-bottom: 25px;
+    }
+    .block {
+      margin: 20px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-top: 10px;
+      width: 100%;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+    #generateBtn {
+      background: #28a745;
+      color: white;
+    }
+    #downloadBtn {
+      background: #007bff;
+      color: white;
+      margin-top: 15px;
+    }
+    #downloadBtn:disabled {
+      background: #9bbce5;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 0 5px rgba(0,0,0,0.08);
+      min-height: 22px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Load Tender Processor</h1>
+  <p class="note">Upload one or more tender PDFs and download the processed Excel output.</p>
+
+  <div class="block">
+    <label>Select PDF Files (multiple):</label><br />
+    <input type="file" id="pdfFiles" multiple accept=".pdf" />
+  </div>
+
+  <button id="generateBtn">Generate Output Excel</button>
+  <button id="downloadBtn" disabled>Download Output Excel</button>
+  <div id="status">Ready.</div>
+
+  <script>
+    const API_URL = "https://YOUR-RENDER-BACKEND.onrender.com/process-tenders";
+
+    let lastOutputBlob = null;
+    const statusBox = document.getElementById("status");
+
+    function setStatus(message) {
+      statusBox.textContent = message;
+    }
+
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      const pdfInput = document.getElementById("pdfFiles");
+      const downloadBtn = document.getElementById("downloadBtn");
+
+      if (!pdfInput.files.length) {
+        alert("Please select at least one PDF file.");
+        return;
+      }
+
+      if (API_URL.includes("YOUR-RENDER-BACKEND")) {
+        alert("Replace API_URL in index.html with your actual Render backend URL first.");
+        return;
+      }
+
+      const formData = new FormData();
+      for (const file of pdfInput.files) {
+        formData.append("pdf_files", file);
+      }
+
+      try {
+        setStatus("Processing PDFs...");
+        downloadBtn.disabled = true;
+        lastOutputBlob = null;
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          setStatus("Error returned from backend.");
+          alert("Error: " + text);
+          return;
+        }
+
+        lastOutputBlob = await res.blob();
+        downloadBtn.disabled = false;
+        setStatus("Processing complete. Download is ready.");
+      } catch (err) {
+        console.error(err);
+        setStatus("Request failed. Check console and backend URL.");
+        alert("Request failed. Check console for details.");
+      }
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (!lastOutputBlob) {
+        alert("No output available yet.");
+        return;
+      }
+
+      const url = window.URL.createObjectURL(lastOutputBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Bulk_Load_Output.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
